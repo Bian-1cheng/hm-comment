@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 
+import static com.hmdp.utils.RegexUtils.isPhoneInvalid;
+
 /**
  * <p>
  * 前端控制器
@@ -37,7 +39,10 @@ public class UserController {
     @PostMapping("code")
     public Result sendCode(@RequestParam("phone") String phone, HttpSession session) {
         // TODO 发送短信验证码并保存验证码
-        // 2023年11月
+        if(isPhoneInvalid(phone)){
+            return Result.fail("手机号码无效");
+        }
+        System.out.println(phone);
         return Result.fail("功能未完成");
     }
 
