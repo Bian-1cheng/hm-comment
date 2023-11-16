@@ -38,12 +38,7 @@ public class UserController {
      */
     @PostMapping("code")
     public Result sendCode(@RequestParam("phone") String phone, HttpSession session) {
-        // TODO 发送短信验证码并保存验证码
-        if(isPhoneInvalid(phone)){
-            return Result.fail("手机号码无效");
-        }
-        System.out.println(phone);
-        return Result.fail("功能未完成");
+        return userService.sendcode(phone,session);
     }
 
     /**
