@@ -1,6 +1,7 @@
 package com.hmdp.controller;
 
 
+import cn.hutool.core.util.RandomUtil;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.UserInfo;
@@ -47,8 +48,13 @@ public class UserController {
      */
     @PostMapping("/login")
     public Result login(@RequestBody LoginFormDTO loginForm, HttpSession session){
-        // TODO 实现登录功能
-        return Result.fail("功能未完成");
+        System.out.println(loginForm);
+        String code = loginForm.getCode();
+        String Phone = loginForm.getPhone();
+        if(code==null || Phone==null){
+            return Result.fail("手机或验证码为空");
+        }
+        return userService.login(code,Phone,session);
     }
 
     /**
