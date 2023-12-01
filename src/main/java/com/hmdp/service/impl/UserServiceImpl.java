@@ -1,5 +1,6 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
@@ -7,8 +8,10 @@ import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 
 import static com.hmdp.utils.RegexUtils.isPhoneInvalid;
@@ -25,6 +28,10 @@ import static com.hmdp.utils.SystemConstants.USER_NICK_NAME_PREFIX;
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
+
     /**
      * 发送验证码，并保存在session中
      * @param phone
@@ -37,7 +44,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             return Result.fail("手机号码有误");
         }
         String code = RandomUtil.randomString(4);
-        session.setAttribute("code",code);
+//        session.setAttribute("code",code);
+        redisTemplate.opsForValue().set(phone, code);
         log.debug("code:"+ code);
         return Result.ok("验证码发送成功");
     }
@@ -52,11 +60,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if(user == null){
             user = createUserWithPhone(phone);
         }
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(user.getId());
-        userDTO.setNickName(user.getNickName());
-        userDTO.setIcon(user.getIcon());
-        session.setAttribute("user",userDTO);
+        session.setAttribute("user", BeanUtil.copyProperties(user, UserDTO.class));
         return Result.ok();
     }
 
