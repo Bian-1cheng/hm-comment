@@ -1,11 +1,9 @@
 package com.hmdp.controller;
 
 
-import cn.hutool.core.util.RandomUtil;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
-import com.hmdp.entity.User;
 import com.hmdp.entity.UserInfo;
 import com.hmdp.service.IUserInfoService;
 import com.hmdp.service.IUserService;
@@ -16,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 
-import static com.hmdp.utils.RegexUtils.isPhoneInvalid;
 
 /**
  * <p>
@@ -51,7 +48,6 @@ public class UserController {
      */
     @PostMapping("/login")
     public Result login(@RequestBody LoginFormDTO loginForm, HttpSession session){
-        System.out.println(loginForm);
         String code = loginForm.getCode();
         String Phone = loginForm.getPhone();
         if(code==null || Phone==null){
