@@ -4,7 +4,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
-import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
@@ -14,6 +13,11 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import static com.hmdp.utils.RedisConstants.*;
 import static com.hmdp.utils.RegexUtils.isPhoneInvalid;
 import static com.hmdp.utils.SystemConstants.USER_NICK_NAME_PREFIX;
 
@@ -44,15 +48,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             return Result.fail("手机号码有误");
         }
         String code = RandomUtil.randomString(4);
-//        session.setAttribute("code",code);
-        redisTemplate.opsForValue().set(phone, code);
+        redisTemplate.opsForValue().set(LOGIN_CODE_KEY + phone, code,LOGIN_CODE_TTL, TimeUnit.MINUTES);
         log.debug("code:"+ code);
         return Result.ok("验证码发送成功");
     }
 
     @Override
     public Result login(String code, String phone, HttpSession session) {
-        String true_code = session.getAttribute("code").toString();
+        String true_code = (String) redisTemplate.opsForValue().get(LOGIN_CODE_KEY + phone);
         if(true_code==null || !true_code.equals(code)){
             return Result.fail("验证码错误");
         }
@@ -60,8 +63,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if(user == null){
             user = createUserWithPhone(phone);
         }
-        session.setAttribute("user", BeanUtil.copyProperties(user, UserDTO.class));
-        return Result.ok();
+        String token = UUID.randomUUID().toString();
+        Map<String, Object> userMap = BeanUtil.beanToMap(user);
+        redisTemplate.opsForHash().putAll(LOGIN_USER_KEY+token,userMap);
+        redisTemplate.expire(LOGIN_USER_KEY+token,LOGIN_USER_TTL,TimeUnit.MINUTES);
+        return Result.ok(token);
     }
 
     private User createUserWithPhone(String phone) {
