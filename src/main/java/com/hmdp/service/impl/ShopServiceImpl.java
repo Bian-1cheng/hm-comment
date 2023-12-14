@@ -7,11 +7,14 @@ import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
-import com.hmdp.utils.RedisConstants;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.concurrent.TimeUnit;
+
+import static com.hmdp.utils.RedisConstants.*;
+
 /**
  * @description: 商品信息查询类
  * @param: null
@@ -29,21 +32,40 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     /**
      * @description: 根据商品id查询商品
+     * {
+     *     考虑了缓存击穿的情况，当需要查询的数据在redis和数据库中都不存在时。
+     * }
      * @param: id 商品id
      * @return: 商品信息
      */
     @Override
     public Result getShopById(Long id) {
-        String shopJson = stringRedisTemplate.opsForValue().get(RedisConstants.CACHE_SHOP_KEY + id);
+        String shopJson = stringRedisTemplate.opsForValue().get(CACHE_SHOP_KEY + id);
         if(!StrUtil.isBlank(shopJson)){
             Shop shop = JSONUtil.toBean(shopJson, Shop.class);
             return Result.ok(shop);
         }
+        if(shopJson != null){
+            return Result.fail("店铺信息不存在");
+        }
         Shop shop = shopService.getById(id);
-        if(shop==null)
+        if(shop==null){
+            stringRedisTemplate.opsForValue().set(CACHE_SHOP_KEY + id,"",CACHE_NULL_TTL, TimeUnit.MINUTES);
             return Result.fail("商品信息不存在");
+        }
         shopJson = JSONUtil.toJsonStr(shop);
-        stringRedisTemplate.opsForValue().set(RedisConstants.CACHE_SHOP_KEY + id,shopJson);
+        stringRedisTemplate.opsForValue().set(CACHE_SHOP_KEY + id,shopJson,CACHE_SHOP_TTL, TimeUnit.MINUTES);
         return Result.ok(shop);
+    }
+
+    @Override
+    public Result updateShopInfo(Shop shop) {
+        Long id = shop.getId();
+        if(id == null){
+            return Result.fail("商铺id为空");
+        }
+        shopService.updateById(shop);
+        stringRedisTemplate.delete(CACHE_SHOP_KEY + shop.getId());
+        return Result.ok();
     }
 }
